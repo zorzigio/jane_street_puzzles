@@ -71,6 +71,7 @@ class Pentagon:
 
 
 class Pentagons:
+    N = 17
 
     def __init__(self) -> None:
         self.pentagons: list[Pentagon] = []
@@ -95,7 +96,7 @@ class Pentagons:
         return pents
 
     def add(self, n: int) -> None:
-        P = self.pentagons[-1].get_pentagon_on_side(n, label=f"P{len(self)+1}")
+        P = self.pentagons[-1].get_pentagon_on_side(n, label=f"P{len(self.pentagons)+1}")
         # print(f"Adding pentagon {P.label} on side {n}")
         self.pentagons.append(P)
         self.sequence.append(n)
@@ -106,7 +107,7 @@ class Pentagons:
     def plot(self) -> None:
         fig = plt.figure(1, figsize=(5, 5), dpi=90)
         ax = fig.add_subplot(111)
-        for P in self:
+        for P in self.pentagons:
             P.plot(ax)
         extent = 10
         ax.set_xlim(-extent, extent)
@@ -115,34 +116,55 @@ class Pentagons:
         plt.title(f"Distance: {self.distance:.7f}")
         plt.show()
 
-    def __len__(self) -> int:
-        return len(self.pentagons)
-
-    def __getitem__(self, i: int) -> Pentagon:
-        return self.pentagons[i]
+    def save(self):
+        fig = plt.figure(1, figsize=(5, 5), dpi=90)
+        ax = fig.add_subplot(111)
+        for P in self.pentagons:
+            P.plot(ax)
+        extent = 10
+        ax.set_xlim(-extent, extent)
+        ax.set_ylim(-extent, extent)
+        ax.set_aspect(1)
+        plt.title(f"Distance: {self.distance:.7f}")
+        plt.savefig("test.svg")
 
     def _compute_min_distance(self) -> float:
-        if len(self) <= 3:
+        if len(self.pentagons) <= 3:
             return float("inf")
-        last_pentagon = self[-1]
+        last_pentagon = self.pentagons[-1]
         min_distance = self.distance
         for pentagon in self.pentagons[0:-3]:
             distance = pentagon.poly.distance(last_pentagon.poly)
+            if distance < Pentagon.COLLISION_DISTANCE:
+                self.has_collisions = True
+                return float("inf")
             if distance < min_distance:
                 min_distance = distance
-        if min_distance < Pentagon.COLLISION_DISTANCE:
-            self.has_collisions = True
         return min_distance
 
     def check_for_collisions(self) -> bool:
         if self.has_collisions:
             return True
-        if len(self) <= 2:
+        if len(self.pentagons) <= 2:
             return False
-        last_pentagon = self[-1]
+        last_pentagon = self.pentagons[-1]
         for pentagon in self.pentagons[:-2]:
             intersection = pentagon.poly.intersection(last_pentagon.poly)
             if intersection.area > 0:
                 return True
 
         return False
+
+    def next_sequence(self) -> list[int] | None:
+        sequence = self.sequence
+        sequence[-1] += 1
+        for i in range(len(sequence)-1, 0, -1):
+            if sequence[i] > 5:
+                sequence[i] = 2
+                sequence[i-1] += 1
+
+        if sequence[0] > 5:
+            return None
+        while len(sequence) < self.N - 2:
+            sequence.append(2)
+        return sequence
